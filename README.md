@@ -3,6 +3,11 @@
 ## Description
 This repository provides a metrics exporter for Qnap NAS. It uses Telegraf with SNMP input and Prometheus output. Grafana Dashboard is included as k8's ConfigMap.
 
+## Container image ![qnap-exporter](https://github.com/bsosnowski/qnap-exporter/actions/workflows/build.yml/badge.svg)
+qnap-exporter container images are built for architectures:
+- linux/amd64
+- linux/arm64 
+
 ## How to configure NAS
 
 * Open Control Panel and locate the SNMP section
@@ -40,8 +45,6 @@ Most important Helm configuration properties.
 | nas.snmp.retries                      | Number of retries                    | 0                        |
 | metrics.enabled                       | Enable metrics scraping              | true                     |
 | metrics.serviceMonitor.labels.release | Release name for Prometheus operator | kube-monitoring          |
-
-
 
 ## Helm install
 
