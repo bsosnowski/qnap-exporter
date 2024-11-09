@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "telegraf-qnap.fullname" . }}-test-connection"
+  labels:
+    {{- include "telegraf-qnap.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "telegraf-qnap.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

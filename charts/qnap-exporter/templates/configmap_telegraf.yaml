@@ -1,0 +1,384 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "telegraf-qnap.labels" . | nindent 4 }}
+  name: {{ include "telegraf-qnap.fullname" . }}
+data:
+  telegraf.conf: |
+    [agent]
+      interval = "{{ .Values.metrics.serviceMonitor.interval }}"
+      round_interval = true
+      metric_batch_size = 5000
+      metric_buffer_limit = 20000
+      collection_jitter = "0s"
+      flush_interval = "30s"
+      flush_jitter = "1s"
+      precision = ""
+      hostname = "{{ .Values.nas.hostname }}"
+      omit_hostname = false
+    
+    [[outputs.prometheus_client]]
+      listen = ":9273"
+      expiration_interval = 0
+    
+    [[inputs.snmp]]
+      agents = ["{{ .Values.nas.snmp.agent }}"]
+      timeout = "{{ .Values.nas.snmp.timeout }}"
+    #   ## SNMP version; can be 1, 2, or 3.
+      version = {{ .Values.nas.snmp.version }}
+      community = "{{ .Values.nas.snmp.community }}"
+      retries = {{ .Values.nas.snmp.retries }}
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.cpuTable"
+        oid = "NAS-MIB::cpuTable"
+        [[inputs.snmp.table.field]]
+          name = "cpuIndex"
+          oid = "NAS-MIB::cpuIndex"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "cpuID"
+          oid = "NAS-MIB::cpuID"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "cpuUsage"
+          oid = "NAS-MIB::cpuUsage"
+    
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.systemTable"
+      # Memory
+        [[inputs.snmp.table.field]]
+          name = "systemTotalMemEX"
+          oid = "NAS-MIB::systemTotalMemEX"
+        [[inputs.snmp.table.field]]
+          name = "systemFreeMemEX"
+          oid = "NAS-MIB::systemFreeMemEX"
+        # System temp
+        [[inputs.snmp.table.field]]
+          name = "cpu-TemperatureEX"
+          oid = "NAS-MIB::cpu-TemperatureEX"
+        [[inputs.snmp.table.field]]
+          name = "systemTemperatureEX"
+          oid = "NAS-MIB::systemTemperatureEX"
+        # Uptime
+        [[inputs.snmp.field]]
+          name = "systemUptime"
+          oid = "NAS-MIB::systemUptimeEX"
+        # Uptime
+        [[inputs.snmp.field]]
+          name = "systemCPU-UsageEX"
+          oid = "NAS-MIB::systemCPU-UsageEX"
+    
+      #  Enclosures
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.enclosureTable"
+        oid = "NAS-MIB::enclosureTable"
+        # Memory
+        [[inputs.snmp.table.field]]
+          name = "enclosureID"
+          oid = "NAS-MIB::enclosureID"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "enclosureModel"
+          oid = "NAS-MIB::enclosureModel"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "enclosureName"
+          oid = "NAS-MIB::enclosureName"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "enclosureSystemTemp"
+          oid = "NAS-MIB::enclosureSystemTemp"
+      #  Fan
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.systemFanTableEx"
+        oid = "NAS-MIB::systemFanTableEx"
+        [[inputs.snmp.table.field]]
+          name = "sysFanIndexEX"
+          oid = "NAS-MIB::sysFanIndexEX"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "sysFanDescrEX"
+          oid = "NAS-MIB::sysFanDescrEX"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "sysFanSpeedEX"
+          oid = "NAS-MIB::sysFanSpeedEX"
+    
+      #  Disk
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.diskTable"
+        oid = "NAS-MIB::diskTable"
+        [[inputs.snmp.table.field]]
+          name = "diskIndex"
+          oid = "NAS-MIB::diskIndex"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "diskID"
+          oid = "NAS-MIB::diskID"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "diskEnclosureID"
+          oid = "NAS-MIB::diskEnclosureID"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "diskSummary"
+          oid = "NAS-MIB::diskSummary"
+        [[inputs.snmp.table.field]]
+          name = "diskSmartInfo"
+          oid = "NAS-MIB::diskSmartInfo"
+        [[inputs.snmp.table.field]]
+          name = "diskTemperture"
+          oid = "NAS-MIB::diskTemperture"
+        [[inputs.snmp.table.field]]
+          name = "diskGlobalSpare"
+          oid = "NAS-MIB::diskGlobalSpare"
+        [[inputs.snmp.table.field]]
+          name = "diskModel"
+          oid = "NAS-MIB::diskModel"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "diskCapacity"
+          oid = "NAS-MIB::diskCapacity"
+          is_tag = true
+    
+      #  Volumes
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.systemVolumeTableEx"
+        oid = "NAS-MIB::systemVolumeTableEx"
+        [[inputs.snmp.table.field]]
+          name = "sysVolumeIndexEX"
+          oid = "NAS-MIB::sysVolumeIndexEX"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "sysVolumeDescrEX"
+          oid = "NAS-MIB::sysVolumeDescrEX"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "sysVolumeFSEX"
+          oid = "NAS-MIB::sysVolumeFSEX"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "sysVolumeTotalSizeEX"
+          oid = "NAS-MIB::sysVolumeTotalSize"
+        [[inputs.snmp.table.field]]
+          name = "sysVolumeFreeSize"
+          oid = "NAS-MIB::sysVolumeFreeSizeEX"
+        [[inputs.snmp.table.field]]
+          name = "sysVolumeStatus"
+          oid = "NAS-MIB::sysVolumeStatusEX"  
+     
+      #  Disk Performance
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.diskPerformanceTable"
+        oid = "NAS-MIB::diskPerformanceTable"
+        [[inputs.snmp.table.field]]
+          name = "diskPerformanceIndex"
+          oid = "NAS-MIB::diskPerformanceIndex"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "blvID"
+          oid = "NAS-MIB::blvID"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "iops"
+          oid = "NAS-MIB::iops"
+        [[inputs.snmp.table.field]]
+          name = "latency"
+          oid = "NAS-MIB::latency"
+    
+      #  JBOD
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.jBODHdTable1"
+        oid = "NAS-MIB::jBODHdTable1"
+        [[inputs.snmp.table.field]]
+          name = "jBODHdIndex1"
+          oid = "NAS-MIB::jBODHdIndex1"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "jBODHdDescr1"
+          oid = "NAS-MIB::jBODHdDescr1"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "jBODHdTemperature1"
+          oid = "NAS-MIB::sysVolumeFSEX"
+        [[inputs.snmp.table.field]]
+          name = "jBODHdStatus1"
+          oid = "NAS-MIB::jBODHdStatus1"
+        [[inputs.snmp.table.field]]
+          name = "jBODHdModel1"
+          oid = "NAS-MIB::jBODHdModel1"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "jBODHdCapacity1 "
+          oid = "NAS-MIB::jBODHdCapacity1"
+        [[inputs.snmp.table.field]]
+          name = "jBODHdSmartInfo1"
+          oid = "NAS-MIB::jBODHdSmartInfo1"
+    
+        #  Power
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.systemPowerTable"
+        oid = "NAS-MIB::systemPowerTable"
+        [[inputs.snmp.table.field]]
+          name = "systemPowerIndex"
+          oid = "NAS-MIB::systemPowerIndex"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "systemPowerID"
+          oid = "NAS-MIB::systemPowerID"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "systemPowerEnclosureID"
+          oid = "NAS-MIB::systemPowerEnclosureID"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "systemPowerStatus"
+          oid = "NAS-MIB::systemPowerStatus"
+        [[inputs.snmp.table.field]]
+          name = "systemPowerFanSpeed"
+          oid = "NAS-MIB::systemPowerFanSpeed"
+        [[inputs.snmp.table.field]]
+          name = "systemPowerFanSpeed"
+          oid = "NAS-MIB::systemPowerFanSpeed"
+        [[inputs.snmp.table.field]]
+          name = "systemPowerTemp"
+          oid = "NAS-MIB::systemPowerTemp"
+    
+      #  Interfaces
+      [[inputs.snmp.table]]
+        name = "snmp.QNAP.systemIfTableEx"
+        oid = "NAS-MIB::systemIfTableEx"
+        [[inputs.snmp.table.field]]
+          name = "ifIndexEX"
+          oid = "NAS-MIB::ifIndexEX"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "ifDescrEX"
+          oid = "NAS-MIB::ifDescrEX"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "ifPacketsReceivedEX"
+          oid = "NAS-MIB::ifPacketsReceivedEX"
+        [[inputs.snmp.table.field]]
+          name = "ifPacketsSentEX"
+          oid = "NAS-MIB::ifPacketsSentEX"
+        [[inputs.snmp.table.field]]
+          name = "ifErrorPacketsEX"
+          oid = "NAS-MIB::ifErrorPacketsEX"
+    
+      # QTS-MIB
+      # System total memory
+      [[inputs.snmp.field]]
+        name = "QTS.systemTotalMem"
+        oid = "QTS-MIB::systemTotalMem.0"
+      # System free memory
+      [[inputs.snmp.field]]
+        name = "QTS.systemFreeMem"
+        oid = "QTS-MIB::systemFreeMem.0"
+      # System available memory
+      [[inputs.snmp.field]]
+        name = "QTS.systemAvailableMem"
+        oid = "QTS-MIB::systemAvailableMem.0"
+      # System used memory
+      [[inputs.snmp.field]]
+        name = "QTS.systemUsedMemory"
+        oid = "QTS-MIB::systemUsedMemory.0"
+      # System cached memory
+      [[inputs.snmp.field]]
+        name = "QTS.systemCacheMemory"
+        oid = "QTS-MIB::systemCacheMemory.0"
+      # System buffered memory
+      [[inputs.snmp.field]]
+        name = "QTS.systemBufferMemory"
+        oid = "QTS-MIB::systemBufferMemory.0"
+    
+      # Uptime
+      [[inputs.snmp.field]]
+        name = "QTS.sysUptime"
+        oid = "QTS-MIB::sysUptime.0"
+    
+      # Services status
+      [[inputs.snmp.field]]
+        name = "QTS.nfsV2V3IsEnabled"
+        oid = "QTS-MIB::nfsV2V3IsEnabled.0"
+    
+      [[inputs.snmp.field]]
+        name = "QTS.nfsV4IsEnabled"
+        oid = "QTS-MIB::nfsV4IsEnabled.0"
+    
+      [[inputs.snmp.field]]
+        name = "QTS.sshIsEnabled"
+        oid = "QTS-MIB::sshIsEnabled.0"
+    
+      [[inputs.snmp.field]]
+        name = "QTS.sshSFTPEnabled"
+        oid = "QTS-MIB::sshSFTPEnabled.0"
+    
+      [[inputs.snmp.field]]
+        name = "QTS.telnetIsEnabled"
+        oid = "QTS-MIB::telnetIsEnabled.0"
+    
+      [[inputs.snmp.field]]
+        name = "QTS.ftpEnabled"
+        oid = "QTS-MIB::ftpEnabled.0"
+    
+      #  Interfaces
+      [[inputs.snmp.table]]
+        name = "snmp.IF.ifTable"
+        oid = "IF-MIB::ifTable"
+        [[inputs.snmp.table.field]]
+          name = "ifIndex"
+          oid = "IF-MIB::ifIndex"
+        [[inputs.snmp.table.field]]
+          name = "ifDescr"
+          oid = "IF-MIB::ifDescr"
+          is_tag = true
+        [[inputs.snmp.table.field]]
+          name = "ifType"
+          oid = "IF-MIB::ifType"
+        [[inputs.snmp.table.field]]
+          name = "ifMtu"
+          oid = "IF-MIB::ifMtu"
+        [[inputs.snmp.table.field]]
+          name = "ifSpeed"
+          oid = "IF-MIB::ifSpeed"
+        [[inputs.snmp.table.field]]
+          name = "ifPhysAddress"
+          oid = "IF-MIB::ifPhysAddress"
+        [[inputs.snmp.table.field]]
+          name = "ifAdminStatus"
+          oid = "IF-MIB::ifAdminStatus"
+        [[inputs.snmp.table.field]]
+          name = "ifOperStatus"
+          oid = "IF-MIB::ifOperStatus"
+        [[inputs.snmp.table.field]]
+          name = "ifLastChange"
+          oid = "IF-MIB::ifLastChange"
+        [[inputs.snmp.table.field]]
+          name = "ifInOctets"
+          oid = "IF-MIB::ifInOctets"
+        [[inputs.snmp.table.field]]
+          name = "ifInUcastPkts"
+          oid = "IF-MIB::ifInUcastPkts"
+        [[inputs.snmp.table.field]]
+          name = "ifInDiscards"
+          oid = "IF-MIB::ifInDiscards"
+        [[inputs.snmp.table.field]]
+          name = "ifInErrors"
+          oid = "IF-MIB::ifInErrors"
+        [[inputs.snmp.table.field]]
+          name = "ifInUnknownProtos"
+          oid = "IF-MIB::ifInUnknownProtos"
+        [[inputs.snmp.table.field]]
+          name = "ifOutOctets"
+          oid = "IF-MIB::ifOutOctets"
+        [[inputs.snmp.table.field]]
+          name = "ifOutUcastPkts"
+          oid = "IF-MIB::ifOutUcastPkts"
+        [[inputs.snmp.table.field]]
+          name = "ifOutDiscards"
+          oid = "IF-MIB::ifOutDiscards"
+        [[inputs.snmp.table.field]]
+          name = "ifOutErrors"
+          oid = "IF-MIB::ifOutErrors"

@@ -1,0 +1,75 @@
+name: Build and Release
+
+run-name: ${{ github.actor }} is building new image 🚀
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  sem-version:
+    name: Semantic versioning
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.semver.outputs.version_tag }}
+      version: ${{ steps.semver.outputs.version }}
+    steps:
+      - run: echo "🔎 Relesing from branch ${{ github.ref }}."
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: 'true'
+      - name: Semantic versioning
+        uses: paulhatch/semantic-version@v5.4.0
+        id: semver
+        with:
+          tag_prefix: "v"
+          enable_prerelease_mode: true
+          debug: false
+#          bump_each_commit: true
+      - name: Log version
+        run: |
+          echo "::notice::Version: ${{ steps.semver.outputs.version_tag }}"
+
+  docker-build:
+    name: Build Container
+    uses: ./.github/workflows/build-docker.yml
+    secrets: inherit
+    needs: sem-version
+    with:
+      docker-image-name: qnap-exporter
+      docker-registry: ghcr.io
+      docker-repository: bsosnowski/docker
+      version: ${{ needs.sem-version.outputs.version_tag }}
+      context-path: docker
+  
+  helm-build:
+    name: Build Helm chart
+    uses: ./.github/workflows/build-helm-chart.yml
+    secrets: inherit
+    needs: sem-version
+    with:
+      version: ${{ needs.sem-version.outputs.version }}
+      context-path: charts/qnap-exporter
+      helm-registry-directory: charts
+      helm-registry: oci://ghcr.io/bsosnowski
+
+  release:
+    name: Create Release
+    needs: [sem-version,docker-build,helm-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      # https://github.blog/2022-04-12-git-security-vulnerability-announced/
+      - name: Set git repository ownership
+        run: |
+          # this is to fix GIT not liking owner of the checkout dir
+          chown -R $(id -u):$(id -g) $PWD
+      - name: Create GitHub Release
+        run: |
+          gh release create ${{ needs.sem-version.outputs.version_tag }} -t qnap-exporter-${{ needs.sem-version.outputs.version_tag }} --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

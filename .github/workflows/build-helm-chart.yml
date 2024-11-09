@@ -1,0 +1,84 @@
+name: .Build Helm chart
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: Chart version to release
+      context-path:
+        required: true
+        type: string
+        description: Path to Chart in Git repository
+      helm-registry:
+        required: true
+        type: string
+        description: Helm remote repository name
+      helm-registry-directory:
+        required: true
+        type: string
+        description:  Helm remote repository directory
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # https://github.blog/2022-04-12-git-security-vulnerability-announced/
+      - name: Set git settings and fix repository ownership
+        run: |
+          # this is to fix GIT not liking owner of the checkout dir
+          chown -R $(id -u):$(id -g) $PWD
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git config --global --add --bool push.autoSetupRemote true
+
+      - name: Set variables
+        id: vars
+        shell: bash
+        working-directory: ${{ inputs.context-path }}
+        run: |
+          echo "chart-name=$(yq -r '.name' Chart.yaml)" >> $GITHUB_OUTPUT
+
+      - name: Update Chart version
+        shell: bash
+        working-directory: ${{ inputs.context-path }}
+        run: |
+          yq e -i '.appVersion = "v${{ inputs.version }}"' Chart.yaml
+          yq e -i '.version = "${{ inputs.version }}"' Chart.yaml
+
+      - name: Login to Docker Registry
+        id: docker-login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+
+      - name: Deploy chart
+        shell: bash
+        working-directory: ${{ inputs.context-path }}
+        run: |
+          helm package .
+          helm push ${{ steps.vars.outputs.chart-name}}-${{ inputs.version }}.tgz ${{ inputs.helm-registry }}/${{ inputs.helm-registry-directory }}
+
+      - name: Commit and push
+        shell: bash
+        working-directory: ${{ inputs.context-path }}
+        run: |
+          git add Chart.yaml
+          git commit -a -m "Helm chart version bumped to ${{ inputs.version }}"
+          git push
+
+      - name: Summary Helm release
+        run: |
+          echo "### Helm Chart :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "| <!-- -->    | <!-- -->    |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "|Name    |${{ steps.vars.outputs.chart-name}}|" >> $GITHUB_STEP_SUMMARY
+          echo "|Version |${{ inputs.version }}|" >> $GITHUB_STEP_SUMMARY
+          echo "|URL     |${{ inputs.helm-registry }}/${{ inputs.helm-registry-directory }}/${{ steps.vars.outputs.chart-name}}/${{ steps.vars.outputs.chart-name}}-${{ inputs.version }}.tgz|" >> $GITHUB_STEP_SUMMARY
