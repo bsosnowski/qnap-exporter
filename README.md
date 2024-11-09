@@ -46,7 +46,7 @@ Most important Helm configuration properties.
 ## Helm install
 
 ```shell
- helm pull oci://ghcr.io/bsosnowski/charts/qnap-exporter --version 0.0.9
+ helm pull oci://ghcr.io/bsosnowski/charts/qnap-exporter --version 0.0.1
 ```
 
 ## TODO
