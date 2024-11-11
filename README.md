@@ -47,9 +47,12 @@ Most important Helm configuration properties.
 | metrics.serviceMonitor.labels.release | Release name for Prometheus operator | kube-monitoring          |
 
 ## Helm install
-
 ```shell
- helm pull oci://ghcr.io/bsosnowski/charts/qnap-exporter --version 1.0.0
+helm install qnap-exporter oci://ghcr.io/bsosnowski/charts/qnap-exporter --version 0.1.1
+```
+or just pull:
+```shell
+ helm pull oci://ghcr.io/bsosnowski/charts/qnap-exporter --version 0.1.1
 ```
 
 ## TODO
